@@ -1,0 +1,649 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Productos Disponibles</title>
+    <link href="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
+    
+    
+   <style>
+  /* Estilo general del slider */
+  .noUi-target {
+    height: 6px !important;
+    border-radius: 9999px;
+    background-color: #e5e7eb !important; /* gris Tailwind */
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 300px; /* límite de ancho visible */
+    margin: auto;     /* centra horizontalmente */
+  }
+
+  /* Línea conectada (valor seleccionado) */
+  .noUi-connect {
+    background: #3b82f6 !important; /* azul Tailwind */
+  }
+
+  /* Manijas del slider */
+  .noUi-handle {
+    width: 16px !important;
+    height: 16px !important;
+    top: -6px !important;
+    background-color: #3b82f6 !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    cursor: grab;
+  }
+
+  /* Quita las barritas decorativas del handle */
+  .noUi-handle:before,
+  .noUi-handle:after {
+    display: none !important;
+  }
+</style>
+
+
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+
+    <!-- Encabezado + botones -->
+<div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+  <h1 class="text-3xl font-bold underline decoration-blue-500">🛍️ Productos Disponibles</h1>
+
+  {% if request.user.is_superuser %}  
+    <div class="flex gap-3">
+      <!-- Botón Agregar -->
+      <a href="{% url 'crear_producto' %}" title="Agregar Producto"
+        class="inline-block bg-green-600 p-2 rounded-full hover:bg-green-700 transition shadow">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+      </a>
+
+      <!-- Botón Editar -->
+      <button onclick="activarModoEdicion()" id="editarBtn" title="Editar Productos"
+          class="bg-yellow-400 p-2 rounded-full hover:bg-yellow-500 transition shadow">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 4h2m2.121 1.879l3 3a1 1 0 010 1.414l-8.586 8.586a2 2 0 01-1.414.586H6a1 1 0 01-1-1v-2.121a2 2 0 01.586-1.414l8.586-8.586a1 1 0 011.414 0z" />
+          </svg>
+      </button>
+    </div>
+  {% endif %}
+ </div>
+
+
+    <!-- COD DE FILTRO -->
+
+    <form id="filtros-form" method="get" class="bg-white p-4 rounded-2xl shadow-md mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+     <!-- ... tus filtros sin cambios ... -->
+        <div class="relative w-full">
+         <input type="text" name="nombre" placeholder="Buscar producto"
+            value="{{ request.GET.nombre }}"
+            class="w-full pl-4 pr-10 py-2 rounded-full border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+          <button type="submit"
+              class="absolute right-1 top-1/2 -translate-y-1/2 bg-[#3c40ff] hover:bg-blue-700 text-white p-2 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/>
+            </svg>
+          </button>
+        </div>
+
+    <!-- Filtro de categoria -->
+       <select name="categoria" class="border border-gray-300 bg-white text-black rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="todas">Todas las categorías</option>
+            <option value="tecnologia" {% if request.GET.categoria == "tecnologia" %}selected{% endif %}>Tecnología</option>
+            <option value="muebles" {% if request.GET.categoria == "muebles" %}selected{% endif %}>Muebles</option>
+            <option value="moda" {% if request.GET.categoria == "moda" %}selected{% endif %}>Moda</option>
+            <option value="decoracion" {% if request.GET.categoria == "decoracion" %}selected{% endif %}>Decoración</option>
+            <option value="electrohogar" {% if request.GET.categoria == "electrohogar" %}selected{% endif %}>Electrohogar</option>
+            <option value="otras" {% if request.GET.categoria == "otras" %}selected{% endif %}>Otras categorías</option>
+        </select>
+
+        <select name="orden" class="border border-gray-300 bg-white text-black rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Ordenar por</option>
+            <option value="reciente" {% if request.GET.orden == "reciente" %}selected{% endif %}>Más reciente</option>
+            <option value="barato" {% if request.GET.orden == "barato" %}selected{% endif %}>Más barato</option>
+            <option value="caro" {% if request.GET.orden == "caro" %}selected{% endif %}>Más caro</option>
+        </select>
+        
+        <label for="stock-switch" class="flex items-center space-x-3 cursor-pointer">
+          <span class="text-sm text-gray-700 font-medium">Solo productos con stock</span>
+          <input
+            type="checkbox"
+            name="stock"
+            value="si"
+            id="stock-switch"
+            class="sr-only"
+            {% if request.GET.stock == "si" %}checked{% endif %}
+          >
+          <div class="w-10 h-5 bg-gray-300 rounded-full relative transition duration-300 peer-checked:bg-blue-600">
+          <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+          </div>
+        </label>
+
+      <!-- barra de desplazamineto -->
+        <div class="flex flex-col items-start col-span-2 w-full">
+          <label class="text-sm font-medium text-gray-700 mb-1">Rango de precio:</label>
+
+          <!--div class="flex flex-col gap-1"> -->
+          <div class="w-[300px]">
+            <div id="slider-precio" class="w-full"></div>
+          </div>
+
+          <div class="flex justify-between  w-[300px] text-sm text-gray-600 mt-1">
+            <span id="precio-min-display">Min: S/ 0</span>
+            <span id="precio-actual-display">S/ 150</span>
+            <span id="precio-max-display">Máx: S/ 300</span>
+        </div>
+
+        <input type="hidden" name="precio_min" id="precio-min" value="{{ request.GET.precio_min|default:'0' }}">
+        <input type="hidden" name="precio_max" id="precio-max" value="{{ request.GET.precio_max|default:'300' }}">
+      </div>
+   
+         <!-- <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition w-full md:col-span-2 lg:col-span-1">Filtrar</button> -->
+    </form>
+
+
+
+    <!--TARJETA CON DETALLES DE LOS PRODUCTOS -->
+
+      <!-- tarjeta de productos -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6 [grid-auto-rows:1fr]">
+      {% for producto in productos %}
+        <!-- Tarjeta del producto -->
+        <div class="flex flex-col bg-white rounded-2xl shadow-md overflow-hidden relative transition-transform transform hover:-translate-y-2 hover:shadow-xl duration-300 h-full">
+
+          <!-- Imagen -->
+          {% if producto.imagenes.first %}
+            <div class="w-full h-40 bg-white flex items-center justify-center rounded-t-xl overflow-hidden">
+              <img src="{{ producto.imagenes.first.imagen.url }}" alt="{{ producto.nombre }}" class="max-h-full max-w-full object-contain">
+            </div>
+          {% else %}
+            <div class="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-500">
+             Sin imagen
+            </div>
+          {% endif %}
+
+          <!-- Contenido del producto -->
+          <div class="p-4 text-left flex flex-col gap-2 flex-grow">
+            <p class="text-xs text-gray-500 font-semibold">Proveedor: <span class="text-gray-800 font-medium">Anónimo</span></p>
+
+            <h2 class="text-[15px] font-extrabold text-gray-800 uppercase leading-snug">
+              {{ producto.nombre }}
+            </h2>
+
+            <div class="text-sm text-gray-700 space-y-1">
+              <p class="flex justify-between">
+                <span class="text-gray-500 font-semibold">Proveedor:</span>
+                <span>S/ {{ producto.precio_proveedor }}</span>
+              </p>
+              <p class="flex justify-between">
+                <span class="text-gray-500 font-semibold">Sugerido:</span>
+                <span>S/ {{ producto.precio_sugerido }}</span>
+              </p>
+            </div>
+
+            <p class="text-sm text-gray-700 font-semibold">
+              Stock: <span class="text-green-600 font-bold">{{ producto.stock }}</span>
+            </p>
+          </div>
+
+          <!-- Botón Ver Detalles -->
+          <div class="pt-2 mb-4 text-center mt-auto">
+            <button onclick="openModal('{{ producto.id }}')" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2 px-6 rounded-full transition mx-auto">
+              Ver detalles
+            </button>
+          </div>
+  
+          <!-- Botón editar (modo edición) -->
+          <button
+              onclick="abrirModalEditar(
+                  '{{ producto.id }}',
+                  `{{ producto.nombre|escapejs }}`,
+                  `{{ producto.categoria|escapejs }}`,
+                  `{{ producto.precio_proveedor|escapejs }}`,
+                  `{{ producto.precio_sugerido|escapejs }}`,
+                  `{{ producto.stock|escapejs }}`,
+                  `{{ producto.detalles|escapejs }}`,
+                  `{{ producto.recursos|escapejs }}`
+              )"
+              class="editar-icono absolute bottom-3 left-3 text-yellow-500 hover:text-yellow-600 hidden"
+              title="Editar producto">
+              ✏️
+          </button>
+
+          <!-- Botón eliminar (modo edición) -->
+            <form method="POST" action="{% url 'eliminar_producto' %}" class="absolute bottom-3 right-3 eliminar-icono hidden">
+                {% csrf_token %}
+                <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                <button type="submit"
+                        class="text-red-500 hover:text-red-600"
+                        title="Eliminar producto"
+                        onclick="return confirm(`¿Estás seguro de que deseas eliminar '{{ producto.nombre|escapejs }}'?`)">
+                    🗑️
+                </button>
+            </form>
+          </div>
+        {% empty %}
+          <!-- Se muestra si la lista de productos está vacía -->
+          <div class="col-span-full text-center text-gray-500 py-10">
+            No hay productos disponibles.
+          </div>
+        {% endfor %}
+      </div>
+
+
+<!--DESDE ACA EMPIEZA LA PARTE DEL MODAL, OSEA LA PARTE INTERNA DE DETALLES-->
+
+ {% for producto in productos %}
+ <!-- Modal de Detalles del Producto -->
+<div id="modal-{{ producto.id }}" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-2xl shadow-xl p-6 w-11/12 max-w-5xl relative">
+   
+    <!-- Botón de cerrar -->
+    <button onclick="closeModal('{{ producto.id }}')" class="absolute top-4 right-6 text-gray-500 hover:text-red-500 text-3xl">&times;</button>
+    
+      <div class="flex flex-col md:flex-row gap-8">    
+        <!-- Galería con miniaturas -->
+        <div class="w-full md:w-1/2">
+        <!-- Imagen principal -->
+          <div class="w-full h-64 bg-white flex items-center justify-center rounded-xl border shadow-md overflow-hidden mb-4">
+            {% if producto.imagenes.all %}
+              <img id="main-img-{{ producto.id }}"
+                src="{{ producto.imagenes.first.imagen.url }}"
+                alt="Imagen principal de {{ producto.nombre }}"
+                class="max-h-full max-w-full object-contain transition duration-300 ease-in-out">
+            {% else %}
+              <p class="text-gray-500">Sin imágenes disponibles.</p>
+            {% endif %}
+        </div>
+
+
+         <!-- Miniaturas -->
+        {% if producto.imagenes.all|length > 1 %}
+          <div class="flex justify-center gap-2">
+            {% for imagen in producto.imagenes.all %}
+              <img src="{{ imagen.imagen.url }}"
+                onclick="document.getElementById('main-img-{{ producto.id }}').src = this.src"
+                class="h-16 w-16 object-cover border-2 border-gray-300 hover:border-blue-500 rounded cursor-pointer transition duration-200">
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+ 
+
+      <!-- Detalles del producto (lado derecho) -->
+      <div class="md:w-1/2 flex flex-col justify-between">
+        <div class="space-y-3">
+          <!-- Título y Categoría -->
+          <h2 class="text-2xl font-bold text-gray-900">{{ producto.nombre }}</h2>
+          <span class="text-sm text-blue-600 font-medium">{{ producto.categoria|title }}</span>
+        
+          
+         <!-- Precios y Stock -->
+        <div class="text-gray-800 text-sm space-y-1">
+            <p><strong>Precio del proveedor:</strong> PEN {{ producto.precio_proveedor }}</p>
+            <p><strong>Precio sugerido:</strong> PEN {{ producto.precio_sugerido }}</p>
+            <p><strong>Stock:</strong> <span class="text-green-600 font-bold">{{ producto.stock }}</span></p>
+        </div>
+
+          
+          <!-- Botones -->
+          <div class="flex items-center gap-3 mt-4">
+            <!-- WhatsApp -->
+            <a href="https://wa.me/51929321527?text=Hola,%20me%20interesa%20el%20producto:%20{{ producto.nombre|urlencode }}" 
+               target="_blank"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              Consultar
+            </a>
+            <!-- Favorito (estrella) -->
+            <button class="text-yellow-400 hover:text-yellow-500 text-2xl" title="Agregar a favoritos">⭐</button>
+          </div>
+        </div>
+
+        <!-- Detalles y Recursos -->
+        <div class="mt-6">
+          <div class="border-b border-gray-200 mb-4">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+              <button onclick="mostrarTab('{{ producto.id }}', 'detalles')" id="tab-detalles-{{ producto.id }}"
+                   class="tab-btn text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 py-2 px-4 text-sm font-medium">
+                📄 Detalles
+              </button>
+              <button onclick="mostrarTab('{{ producto.id }}', 'recursos')" id="tab-recursos-{{ producto.id }}"
+                    class="tab-btn text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 py-2 px-4 text-sm font-medium">
+                📚 Recursos adicionales
+              </button>
+            </nav>
+        </div>
+
+        <!-- Contenido de Detalles -->
+        <div id="contenido-detalles-{{ producto.id }}" class="tab-content">
+          <p class="text-sm text-gray-700 whitespace-pre-line">
+            {{ producto.detalles|default:"Sin detalles disponibles." }}
+          </p>
+        </div>
+
+        <!-- Contenido de Recursos -->
+          <div id="contenido-recursos-{{ producto.id }}" class="tab-content hidden">
+            {% if producto.recursos.all %}
+              <ul class="list-disc ml-6 space-y-2 text-sm text-gray-800">
+                {% for recurso in producto.recursos.all %}
+                  <li>
+                    <a href="{{ recurso.archivo.url }}" download class="text-blue-600 underline">
+                     {{ recurso.archivo.name|cut:"media/recursos/" }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-sm text-gray-500 italic">No hay recursos disponibles.</p>
+            {% endif %}
+          </div>
+       </div>
+     </div>
+    </div>
+  </div>
+</div>
+{% endfor%}
+
+
+<script>
+  // ACTIVACION DEL MODO EDICION(BOTON EDITAR E ELIMINAR)
+
+    let modoEdicionActivo = false;
+
+  function activarModoEdicion() {
+    modoEdicionActivo = !modoEdicionActivo;
+
+    // Cambia el color del botón para indicar si está activo
+    const boton = document.getElementById('editarBtn');
+    boton.classList.toggle('bg-yellow-500', modoEdicionActivo);
+    boton.classList.toggle('bg-yellow-400', !modoEdicionActivo);
+
+    // Muestra u oculta los íconos de editar en cada producto
+    document.querySelectorAll('.editar-icono').forEach(icono => {
+      icono.classList.toggle('hidden', !modoEdicionActivo);
+    });
+
+    document.querySelectorAll('.eliminar-form').forEach(form => {
+    form.classList.toggle('hidden', !modoEdicionActivo);
+    });
+
+    document.querySelectorAll('.eliminar-icono').forEach(icono => {
+  icono.classList.toggle('hidden', !modoEdicionActivo);
+    });
+
+  }
+    // Abre modal detalles
+    function openModal(id) {
+    document.getElementById('modal-' + id).classList.remove('hidden');
+    mostrarTab('detalles', id);  
+    }
+
+    // Cierra modal detalles
+    function closeModal(id) {
+        document.getElementById('modal-' + id).classList.add('hidden');
+    }
+
+
+</script>
+<!-- Modal edicion -->
+<div id="modal-editar-producto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div onclick="event.stopPropagation()" class="bg-white rounded-2xl shadow-xl p-6 w-11/12 max-w-3xl relative">
+    <!-- Botón cerrar -->
+    <button onclick="cerrarModalEditar()" class="absolute top-4 right-6 text-gray-500 hover:text-red-500 text-3xl">&times;</button>
+
+    <!-- Formulario -->
+    <form id="form-editar-producto" method="POST" action="{% url 'editar_producto' %}" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="producto_id" id="editar-id">
+
+      <div>
+        <label class="block font-semibold">Nombre:</label>
+        <input type="text" name="nombre" id="editar-nombre" class="w-full border px-3 py-2 rounded-xl" required>
+      </div>
+
+      <div>
+        <label class="block font-semibold">Categoría:</label>
+        <input type="text" name="categoria" id="editar-categoria" class="w-full border px-3 py-2 rounded-xl" required>
+      </div>
+
+      <div>
+        <label class="block font-semibold">Precio Proveedor:</label>
+        <input type="number" name="precio_proveedor" id="editar-precio_proveedor" class="w-full border px-3 py-2 rounded-xl" required step="0.01">
+      </div>
+
+      <div>
+        <label class="block font-semibold">Precio Sugerido:</label>
+        <input type="number" name="precio_sugerido" id="editar-precio_sugerido" class="w-full border px-3 py-2 rounded-xl" required step="0.01">
+      </div>
+
+      <div>
+        <label class="block font-semibold">Stock:</label>
+        <input type="number" name="stock" id="editar-stock" class="w-full border px-3 py-2 rounded-xl" required>
+      </div>
+
+      <div>
+        <label class="block font-semibold">Detalles:</label>
+        <textarea name="detalles" id="editar-detalles" class="w-full border px-3 py-2 rounded-xl" required></textarea>
+      </div>
+
+      <div>
+        <label class="block font-semibold">Recursos:</label>
+        <input type="file" name="recurso" id="editar-recurso" class="w-full border px-3 py-2 rounded-xl">
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700">Guardar Cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<script>
+  // ENVVIAR FORMULARIO AL GUARDAR EDICION
+document.getElementById('form-editar-producto').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const form = this;
+    const formData = new FormData(form);
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 1. Cierra el modal
+            const modal = document.getElementById('modal-editar-producto');
+            if (modal) {
+                modal.classList.add('hidden'); // o usa tu método de ocultar el modal
+            }
+
+            // 2. Actualiza los datos del producto en la tarjeta/lista
+            const productoId = form.querySelector('#editar-id').value;
+            const nombre = form.querySelector('#editar-nombre').value;
+            const categoria = form.querySelector('#editar-categoria').value;
+            const precioProveedor = form.querySelector('#editar-precio_proveedor').value;
+            const precioSugerido = form.querySelector('#editar-precio_sugerido').value;
+            const stock = form.querySelector('#editar-stock').value;
+
+            // ⚠️ Ajusta estos selectores según cómo esté estructurada tu lista de productos
+            document.querySelector(`#nombre-${productoId}`).textContent = nombre;
+            document.querySelector(`#categoria-${productoId}`).textContent = categoria;
+            document.querySelector(`#precio_proveedor-${productoId}`).textContent = `S/ ${precioProveedor}`;
+            document.querySelector(`#precio_sugerido-${productoId}`).textContent = `S/ ${precioSugerido}`;
+            document.querySelector(`#stock-${productoId}`).textContent = `${stock} unidades`;
+
+            alert('Producto actualizado correctamente ✅');
+        } else {
+            alert('Error al actualizar: ' + (data.error || 'Algo salió mal'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la solicitud.');
+    });
+});
+</script>
+
+
+
+<script>
+  //CARGA DATOS DEL FORMULARIO EDICION
+ function abrirModalEditar(id, nombre, categoria, precioProveedor, precioSugerido, stock, detalles, recursos) {
+    document.getElementById("modal-editar-producto").classList.remove("hidden");
+
+    document.getElementById("editar-id").value = id;
+    document.getElementById("editar-nombre").value = nombre;
+    document.getElementById("editar-categoria").value = categoria;
+    document.getElementById("editar-precio_proveedor").value = precioProveedor;
+    document.getElementById("editar-precio_sugerido").value = precioSugerido;
+    document.getElementById("editar-stock").value = stock;
+
+    // Esto va en "detalles", que es el textarea en tu HTML
+    document.getElementById("editar-detalles").value = detalles;
+
+    // Este es "recursos"
+    document.getElementById("editar-recursos").value = recursos;
+}
+</script>
+
+
+
+<script>
+  // CIERRA MODAL DANDO CLICK AFUERA XD
+  document.getElementById("modal-editar-producto").addEventListener("click", function () {
+    cerrarModalEditar();
+  });
+
+  // Función para cerrar el modal
+  function cerrarModalEditar() {
+    document.getElementById("modal-editar-producto").classList.add("hidden");
+  }
+</script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
+<script>
+  // SLIDER RAGO DE PRECIO DE LA BARRA DESPLAZAMIENTO
+  const slider = document.getElementById('slider-precio');
+  const minInput = document.getElementById('precio-min');
+  const maxInput = document.getElementById('precio-max');
+  const minDisplay = document.getElementById('precio-min-display');
+  const maxDisplay = document.getElementById('precio-max-display');
+  const actualDisplay = document.getElementById('precio-actual-display');
+
+  const minValue = parseFloat(minInput.value) || 0;
+  const maxValue = parseFloat(maxInput.value) || 300;
+
+  noUiSlider.create(slider, {
+    start: [minValue, maxValue],
+    connect: true,
+    range: {
+      min: 0,
+      max: 300
+    },
+    step: 1,
+    format: {
+      to: value => Math.round(value),
+      from: value => Number(value)
+    }
+  });
+
+  slider.noUiSlider.on('update', function (values) {
+    const [minVal, maxVal] = values.map(v => parseInt(v));
+
+    minInput.value = minVal;
+    maxInput.value = maxVal;
+
+    minDisplay.textContent = `Min: S/ ${minVal}`;
+    maxDisplay.textContent = `Máx: S/ ${maxVal}`;
+
+    const promedio = Math.round((minVal + maxVal) / 2);
+    actualDisplay.textContent = `S/ ${promedio}`;
+  });
+
+  // Enviar automáticamente al soltar
+  slider.noUiSlider.on('set', function () {
+    document.getElementById('filtros-form').submit();
+  });
+    
+    // Dispara auto-envío de filtros si quieres (opcional)
+    // document.querySelector('form').submit();
+
+</script>
+
+
+<script>
+//ACA SON LOS TAPS(OSEA LAS BARRAS DE DETALLES Y RECURSOS)
+  function mostrarTab(productoId, tab ) {
+    // IDs esperados
+    const detallesId = `contenido-detalles-${productoId}`;
+    const recursosId = `contenido-recursos-${productoId}`;
+    const tabDetallesId = `tab-detalles-${productoId}`;
+    const tabRecursosId = `tab-recursos-${productoId}`;
+
+     // Ocultar ambos contenidos
+    document.getElementById(detallesId)?.classList.add('hidden');
+    document.getElementById(recursosId)?.classList.add('hidden');
+
+    // Desactivar pestañas
+    document.getElementById(tabDetallesId)?.classList.remove('text-blue-600', 'border-blue-600');
+    document.getElementById(tabRecursosId)?.classList.remove('text-blue-600', 'border-blue-600');
+
+    // Mostrar el tab seleccionado
+    if (tab === 'detalles') {
+      document.getElementById(detallesId)?.classList.remove('hidden');
+      document.getElementById(tabDetallesId)?.classList.add('text-blue-600', 'border-blue-600');
+    } else if (tab === 'recursos') {
+      document.getElementById(recursosId)?.classList.remove('hidden');
+      document.getElementById(tabRecursosId)?.classList.add('text-blue-600', 'border-blue-600');
+    }
+  }
+</script>
+
+
+<script>
+  //ENVIO AUTOMATICO AL CAMBIAR FORMULARIO FILTRO
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('filtros-form');
+
+  // Enviar formulario automáticamente al cambiar estos campos
+  const campos = form.querySelectorAll('input[type="text"], select, input[type="checkbox"]');
+
+  campos.forEach(campo => {
+    campo.addEventListener('change', () => {
+      form.submit();
+    });
+  });
+
+  // Slider de precio: enviar automáticamente cuando se actualiza
+  const slider = document.getElementById('slider-precio');
+  if (slider && slider.noUiSlider) {
+    slider.noUiSlider.on('set', () => {
+      form.submit();
+    });
+  }
+});
+</script>
+
+
+</body>
+</html>
